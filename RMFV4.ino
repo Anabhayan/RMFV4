@@ -1,12 +1,12 @@
 #define ZeroError 0.8
 int j;
 
-
-//-------Decoder logic
-const int decoderSelectPins[] = { 10, 11, 12 };
-const int numPins = 3;
+//Decoder logic
+const int decoderEnablePins[] = { 7, 8, 9 };  // LE_bar, E1_bar, E2
+const int decoderSelectPins[] = { 10, 11, 12 };// A0, A1, A2
+const int numPins = 3;                                      
+const int burningConstant = 8;  // arbitrarily chosen value                               
 const int numStates = 1 << numPins - 2; //only 6 leds 
-
 
 //Frequency
 const int RphaseIntPin = 2;
@@ -19,6 +19,16 @@ const float minFrequency = 0.0;
 const float maxFrequency = 15.0;
 
 void setup() {
+
+  //LE_bar
+  digitalWrite(decoderEnablePins[0], LOW);// FIXED
+
+  //E1_bar
+  digitalWrite(decoderEnablePins[1], HIGH);// HIGH => OUTPUTS DISABLED ; LOW => OUTPUTS ENABLED
+
+  // E2 
+  digitalWrite(decoderEnablePins[2], HIGH);// FIXED
+
   pinMode(RphaseIntPin, INPUT_PULLUP);
 
   for (int pin : decoderSelectPins) {
@@ -47,10 +57,13 @@ void loop() {
     for (j = 0; j < numPins; j++) {
       digitalWrite(decoderSelectPins[j], bitRead(0, j));
     }  // led 1 is fired
-    delay(timePeriod / 8);  // led 1 burns for timePeriod/8 ms (8ms randomly chosen)
-    for (j = 0; j < numPins; j++) {
-      digitalWrite(decoderSelectPins[j], bitRead(7, j));
-    }   // led 1 is turned off
+
+    digitalWrite(decoderEnablePins[1], LOW);// OUTPUTS ENABLED
+
+    delay(timePeriod / burningConstant);  // led 1 burns for timePeriod/8 ms (8ms randomly chosen)
+    
+    digitalWrite(decoderEnablePins[1], HIGH);// OUTPUTS DISABLED
+    
     forwardAndReverseSequence(timePeriod , 1);
   }
 
@@ -81,7 +94,7 @@ void forwardAndReverseSequence(int delayTime, bool direction) {
   int start = direction ? 0 : numStates - 1;
   int end = direction ? numStates : -1;
   int step = direction ? 1 : -1; 
-
+  
   for (int i = start; i != end; i += step) {
 
     delay(delayTime / 24);
@@ -90,11 +103,12 @@ void forwardAndReverseSequence(int delayTime, bool direction) {
       digitalWrite(decoderSelectPins[j], bitRead(i, j));
     }  // led 'i' is fired
 
-    delay(delayTime / 8);  // led 'i' burns for timePeriod/8 ms 
+    digitalWrite(decoderEnablePins[1], LOW);// OUTPUTS ENABLED
 
-    for (j = 0; j < numPins; j++) {
-      digitalWrite(decoderSelectPins[j], bitRead(7, j));
-    }  // led 'i' is turned off
+    delay(delayTime / burningConstant);  // led 'i' burns for timePeriod/8 ms 
+
+    digitalWrite(decoderEnablePins[1], HIGH);// OUTPUTS DISABLED
+ 
 
   }
 }
