@@ -94,7 +94,13 @@ void forwardAndReverseSequence(int delayTime, bool direction) {
   int start = direction ? 0 : numStates - 1;
   int end = direction ? numStates : -1;
   int step = direction ? 1 : -1; 
-  
+
+// get the current time
+  unsigned long startMillis = millis();
+
+
+  // while loop that runs for approximately 5 seconds
+  while(millis() - startMillis < 5000) {
   for (int i = start; i != end; i += step) {
 
     delay(delayTime / 24);
@@ -108,7 +114,9 @@ void forwardAndReverseSequence(int delayTime, bool direction) {
     delay(delayTime / burningConstant);  // led 'i' burns for timePeriod/8 ms 
 
     digitalWrite(decoderEnablePins[1], HIGH);// OUTPUTS DISABLED
- 
+
 
   }
+  }
 }
+
