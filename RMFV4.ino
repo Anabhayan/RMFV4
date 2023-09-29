@@ -1,46 +1,63 @@
-const int interruptPin = 3;
+#define ZeroError 0.8
+
+
+//-------Decoder logic
+const int decoderSelectPins[] = { 10, 11, 12 };
+const int numPins = 3;
+const int numStates = 1 << numPins;
+
+
+
+//Frequency
+const int RphaseIntPin = 2;
+float frequency = 0.0;
 volatile unsigned long startTime = 0;
 volatile unsigned long endTime = 0;
 volatile bool risingEdge = false;
 volatile bool measureFrequency = false;
-
-const float minFrequency = 0.5;
-const float maxFrequency = 60; 
-const int sampleSize = 3;
-float samples[sampleSize];
-int sampleIndex = 0;
-float lastValidFrequency = -1;
+const float minFrequency = 0.0;
+const float maxFrequency = 15.0;
 
 void setup() {
-  pinMode(interruptPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin), handleInterrupt, CHANGE);
+  pinMode(RphaseIntPin, INPUT_PULLUP);
+
+  for (int pin : decoderSelectPins) {
+    pinMode(pin, OUTPUT);
+  }
+  attachInterrupt(digitalPinToInterrupt(RphaseIntPin), handleInterrupt, CHANGE);
   Serial.begin(9600);
 }
 
 void loop() {
-  if (millis() % 2000 == 0) { // Check frequency changes every 3 seconds
-    measureFrequency = true; // Enable interrupt
-    delay(1800);
-    measureFrequency = false; // Disable interrupt
-    float frequency = getMostOccurring(samples, sampleSize); // Get the most occurring frequency from samples
-    if (frequency >= minFrequency && frequency <= maxFrequency) { // Check if frequency is within range
-      Serial.print("Frequency: ");
-      Serial.println(frequency);
-      lastValidFrequency = frequency; // Update the last valid frequency
-    } else {
-      Serial.println("Invalid frequency");
-      if (lastValidFrequency != -1) { // If there is a last valid frequency
-        Serial.print("Defaulting to last valid frequency: ");
-        Serial.println(lastValidFrequency);
-      }
-    }
-    sampleIndex = 0; // Reset sample index
+  measureFrequency = true;
+  delay(500);
+  measureFrequency = false;
+
+  if (isValidFrequency(frequency)) {
+    Serial.print("Frequency: ");
+    Serial.println(frequency);
+
+
+    float timePeriod = 1 / frequency;
+
+    delay(timePeriod / 4);  // Flux - voltage delay.
+    delay(timePeriod / 4);  // wait for R peak.
+
+    digitalWrite(decoderSelectPins[0], HIGH);  // r led is fired
+    delay(timePeriod / 8);  // r led burns for timePeriod/8 ms (8ms randomly chosen)
+    digitalWrite(decoderSelectPins[0], LOW);   // r led is turned off
+    forwardAndReverseSequence(timePeriod / 24, 1) 
   }
 }
 
+bool isValidFrequency(float freq) {
+  return freq >= minFrequency && freq <= maxFrequency;
+}
+
 void handleInterrupt() {
+  delayMicroseconds(100);  // Give some time for the processor to handle interrupts.
   if (measureFrequency) {
-    int sensorValue = digitalRead(interruptPin);
+    int sensorValue = digitalRead(RphaseIntPin);
 
     if (sensorValue == HIGH && !risingEdge) {
       startTime = micros();
@@ -48,27 +65,21 @@ void handleInterrupt() {
     } else if (sensorValue == LOW && risingEdge) {
       endTime = micros();
       risingEdge = false;
-      float frequency = 1.0 / ((endTime - startTime) * 1e-6);
-      samples[sampleIndex] = frequency/2; // Store the frequency in samples array
-      sampleIndex++; // Increment sample index
+      frequency = 1.0 / ((endTime - startTime) * 1e-6);
+      frequency = frequency / 2 + ZeroError;
     }
   }
 }
 
-float getMostOccurring(float arr[], int n) {
-  float maxCount = 0; // Maximum count of an element
-  float result = -1; // Resultant element
-  for (int i = 0; i < n; i++) {
-    int count = 1; // Count of current element
-    for (int j = i + 1; j < n; j++) {
-      if (arr[i] == arr[j]) { // If current element matches with another element
-        count++; // Increment count
-      }
+void forwardAndReverseSequence(int delayTime, bool direction) {
+  int start = direction ? 0 : numStates - 1;
+  int end = direction ? numStates : -1;
+  int step = direction ? 1 : -1;
+
+  for (int i = start; i != end; i += step) {
+    for (int j = 0; j < numPins; j++) {
+      digitalWrite(decoderSelectPins[j], bitRead(i, j));
     }
-    if (count > maxCount) { // If count is greater than maxCount
-      maxCount = count; // Update maxCount
-      result = arr[i]; // Update result
-    }
+    delay(delayTime);
   }
-  return result;
 }
