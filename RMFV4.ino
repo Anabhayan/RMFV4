@@ -1,11 +1,11 @@
 #define ZeroError 0.8
+int j;
 
 
 //-------Decoder logic
 const int decoderSelectPins[] = { 10, 11, 12 };
 const int numPins = 3;
-const int numStates = 1 << numPins;
-
+const int numStates = 1 << numPins - 2; //only 6 leds 
 
 
 //Frequency
@@ -43,11 +43,17 @@ void loop() {
     delay(timePeriod / 4);  // Flux - voltage delay.
     delay(timePeriod / 4);  // wait for R peak.
 
-    digitalWrite(decoderSelectPins[0], HIGH);  // r led is fired
-    delay(timePeriod / 8);  // r led burns for timePeriod/8 ms (8ms randomly chosen)
-    digitalWrite(decoderSelectPins[0], LOW);   // r led is turned off
-    forwardAndReverseSequence(timePeriod / 24, 1) 
+
+    for (j = 0; j < numPins; j++) {
+      digitalWrite(decoderSelectPins[j], bitRead(0, j));
+    }  // led 1 is fired
+    delay(timePeriod / 8);  // led 1 burns for timePeriod/8 ms (8ms randomly chosen)
+    for (j = 0; j < numPins; j++) {
+      digitalWrite(decoderSelectPins[j], bitRead(7, j));
+    }   // led 1 is turned off
+    forwardAndReverseSequence(timePeriod , 1);
   }
+
 }
 
 bool isValidFrequency(float freq) {
@@ -74,12 +80,21 @@ void handleInterrupt() {
 void forwardAndReverseSequence(int delayTime, bool direction) {
   int start = direction ? 0 : numStates - 1;
   int end = direction ? numStates : -1;
-  int step = direction ? 1 : -1;
+  int step = direction ? 1 : -1; 
 
   for (int i = start; i != end; i += step) {
-    for (int j = 0; j < numPins; j++) {
+
+    delay(delayTime / 24);
+
+    for (j = 0; j < numPins; j++) {
       digitalWrite(decoderSelectPins[j], bitRead(i, j));
-    }
-    delay(delayTime);
+    }  // led 'i' is fired
+
+    delay(delayTime / 8);  // led 'i' burns for timePeriod/8 ms 
+
+    for (j = 0; j < numPins; j++) {
+      digitalWrite(decoderSelectPins[j], bitRead(7, j));
+    }  // led 'i' is turned off
+
   }
 }
