@@ -2,7 +2,7 @@
 int j;
 
 //Decoder logic
-const int decoderEnablePins[] = { 7, 8, 9 };  // LE_bar, E1_bar, E2
+const int EnablePin =  7;  // LE_bar, E1_bar, E2
 const int decoderSelectPins[] = { 10, 11, 12 };// A0, A1, A2
 const int numPins = 3;                                      
 const int burningConstant = 8;  // arbitrarily chosen value                               
@@ -20,14 +20,8 @@ const float maxFrequency = 15.0;
 
 void setup() {
 
-  //LE_bar
-  digitalWrite(decoderEnablePins[0], LOW);// FIXED
-
   //E1_bar
-  digitalWrite(decoderEnablePins[1], HIGH);// HIGH => OUTPUTS DISABLED ; LOW => OUTPUTS ENABLED
-
-  // E2 
-  digitalWrite(decoderEnablePins[2], HIGH);// FIXED
+  digitalWrite(EnablePin, HIGH);// HIGH => OUTPUTS DISABLED ; LOW => OUTPUTS ENABLED
 
   pinMode(RphaseIntPin, INPUT_PULLUP);
 
@@ -58,11 +52,11 @@ void loop() {
       digitalWrite(decoderSelectPins[j], bitRead(0, j));
     }  // led 1 is fired
 
-    digitalWrite(decoderEnablePins[1], LOW);// OUTPUTS ENABLED
+    digitalWrite(EnablePin, LOW);// OUTPUTS ENABLED
 
     delay(timePeriod / burningConstant);  // led 1 burns for timePeriod/8 ms (8ms randomly chosen)
     
-    digitalWrite(decoderEnablePins[1], HIGH);// OUTPUTS DISABLED
+    digitalWrite(EnablePin, HIGH);// OUTPUTS DISABLED
     
     forwardAndReverseSequence(timePeriod , 1);
   }
@@ -109,14 +103,13 @@ void forwardAndReverseSequence(int delayTime, bool direction) {
       digitalWrite(decoderSelectPins[j], bitRead(i, j));
     }  // led 'i' is fired
 
-    digitalWrite(decoderEnablePins[1], LOW);// OUTPUTS ENABLED
+    digitalWrite(EnablePin, LOW);// OUTPUTS ENABLED
 
     delay(delayTime / burningConstant);  // led 'i' burns for timePeriod/8 ms 
 
-    digitalWrite(decoderEnablePins[1], HIGH);// OUTPUTS DISABLED
+    digitalWrite(EnablePin, HIGH);// OUTPUTS DISABLED
 
 
   }
   }
 }
-
